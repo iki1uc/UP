@@ -2,166 +2,148 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>SETUP‑VERIFY • SET(respo) • arg / xARG / 3te‑ARG</title>
+<title>SETUP · RESPO · Zentrum</title>
 
 <style>
-body { background:#000; color:#eee; font-family:Consolas; padding:20px; }
-h1,h2 { color:#00e0ff; text-shadow:0 0 10px #00e0ff; }
-.block { border:1px solid #00e0ff; padding:15px; margin:20px 0; border-radius:8px; background:#111; }
-pre { background:#222; padding:10px; border-radius:6px; }
-.matrix { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.cell { padding:10px; background:#222; border:1px solid #333; text-align:center; border-radius:6px; }
+  body { background:#000; color:#0f0; font-family:Consolas; padding:20px; }
+  h1, h2 { color:#6cf; }
+  .block { background:#111; border:1px solid #333; padding:15px; margin:20px 0; }
+  pre { background:#000; border:1px solid #333; padding:12px; }
+  .ok { color:#00ff88; }
+  .warn { color:#ffcc00; }
+  .err { color:#ff4444; }
 </style>
 
+<script src="./fin.e.js"></script>
+
 <script>
-// Station automatisch erkennen
-function detectStation() {
-  const p = window.location.pathname.toLowerCase();
-  if (p.includes("/setup")) return "SETUP";
-  if (p.includes("/respo")) return "RESPO";
-  if (p.includes("/set")) return "SET(respo)";
-  return "UNDEFINED";
-}
-const station = detectStation();
+// ------------------------------------------------------
+// VERIFY.html LADEN
+// ------------------------------------------------------
+async function loadVerify(){
+  try{
+    const res = await fetch("./verify.html");
+    const text = await res.text();
 
-// SETUP‑Vector
-const SETUP = [
-  "SET.respo","AIR.json","boerse.json",
-  "fin.e.js","index.html","tool.html","ID.html"
+    const readyMatch = text.match(/READY\s*=\s*(\d+%)/);
+    const ready = readyMatch ? readyMatch[1] : "N/A";
+
+    document.getElementById("verifyReady").textContent = ready;
+    document.getElementById("verifyStatus").textContent = "verify.html geladen ✓";
+  }catch(e){
+    document.getElementById("verifyStatus").textContent = "verify.html fehlt ✗";
+    document.getElementById("verifyReady").textContent = "N/A";
+  }
+}
+
+// ------------------------------------------------------
+// RESPO‑SCAN (GHOST‑SCAN)
+// ------------------------------------------------------
+const RESPO_NAMES = [
+  "AIR","boerse","markt3","HOME","USE","ACSH","REAL","BIL","DU","NG"
 ];
 
-// RESPO‑Vector
-const RESPO = [
-  "SET.respo","AIR.json","boerse.json",
-  "fin.e.js","index.html","ID.html"
-];
-
-// Achse A (BEN / DA / NE)
-const A = {
-  BEN: ["BEN.tmp","BEN-NC3×3","BEN-NC6eT6D","BEN-NC9×9","TMP","TRANS","WARB"],
-  DA:  ["DA.tmp","DA-NC3×3","DA-NC6eX6D","DA-NC9×9","TMP","TRANS","WARB"],
-  NE:  ["NE.tmp","NE-NC3×3","NE-NC6eY6D","NE-NC9×9","TMP","TRANS","WARB"]
-};
-
-// Achse B (C / X / Z)
-const Baxis = {
-  C: ["C.tmp","NC3×3","NC6e","NC9×9","TMP","TRANS","WARB"],
-  X: ["X.tmp","NC3×3","NC6e","NC9×9","TMP","TRANS","WARB"],
-  Z: ["Z.tmp","NC3×3","NC6e","NC9×9","TMP","TRANS","WARB"]
-};
-
-// Achse C (DE / TR / EN)
-const Caxis = {
-  DE: ["DE.tmp","NC3×3","NC6e","NC9×9","TMP","TRANS","WARB"],
-  TR: ["TR.tmp","NC3×3","NC6e","NC9×9","TMP","TRANS","WARB"],
-  EN: ["EN.tmp","NC3×3","NC6e","NC9×9","TMP","TRANS","WARB"]
-};
-
-// Vergleichsfunktion
-function compare(base, target) {
-  let have = [];
-  let need = [];
-  for (const item of base) {
-    if (target.includes(item)) have.push(item);
-    else need.push(item);
+async function loadRespo(name){
+  try{
+    const res = await fetch(`./RESPO/${name}.json`);
+    return await res.json();
+  }catch(e){
+    return { NAME:name, MISS:true };
   }
-  return { have, need };
 }
 
-// ARG‑Engine
-function arg(base, target) {
-  return compare(base, target);
+async function loadAllRespos(){
+  const respos = [];
+  for(const n of RESPO_NAMES){
+    respos.push(await loadRespo(n));
+  }
+  return respos;
 }
 
-function xARG(base, target) {
-  return compare(
-    base.concat(["NC²","NC²□","NC²octa²","NC²octa³","6E→6D.tech","12e"]),
-    target
-  );
+function renderScan(scan){
+  const out = document.getElementById("scanOutput");
+  out.innerHTML = "";
+
+  scan.forEach(r => {
+    const box = document.createElement("div");
+    box.className = "block";
+
+    let cls = "ok";
+    if(r.RESULT === "HELFEN") cls = "warn";
+    if(r.ERROR || r.MISS) cls = "err";
+
+    box.innerHTML = `
+      <h2 class="${cls}">${r.NAME}</h2>
+      <pre>
+ID: ${r.ID}
+LAGE: ${r.RAUM ? JSON.stringify(r.RAUM) : "(keine LAGE)"}
+STATUS: ${r.STATUS}
+RESULT: ${r.RESULT}
+OUT: ${JSON.stringify(r.OUT)}
+REAL: ${r.WAHRHEIT || "?"}
+EDIT: ${r.IST_IST || "?"}
+      </pre>
+    `;
+    out.appendChild(box);
+  });
 }
 
-function ARG3(base, target) {
-  return compare(
-    base.concat([
-      "NC²","NC²□","NC²octa²","NC²octa³",
-      "6E→6D.tech","12e","STATIONEN.raw",
-      "hardware-form","Meta-Drift","Fusion-Matrix","Visualizer"
-    ]),
-    target
-  );
-}
+// ------------------------------------------------------
+// START
+// ------------------------------------------------------
+async function start(){
+  await loadVerify();
 
-function runVerify() {
-  let out = "";
-
-  out += "SETUP‑VERIFY für Station: " + station + "\n";
-  out += "=====================================\n\n";
-
-  out += "ARG‑Engine aktiv (arg + xARG + 3te‑ARG gleichzeitig)\n\n";
-
-  out += "SETUP‑Vector:\n-------------\n";
-  out += SETUP.join(", ") + "\n\n";
-
-  out += "RESPO‑Vector:\n-------------\n";
-  out += RESPO.join(", ") + "\n\n";
-
-  out += "Achsen:\n--------\n";
-  out += "A = BEN / DA / NE\n";
-  out += "B = C / X / Z\n";
-  out += "C = DE / TR / EN\n\n";
-
-  out += "ARG‑Analyse (TIC‑TAC‑TOE‑Matrix):\n----------------------------------\n";
-
-  // Achse A
-  out += "Achse A (BEN / DA / NE)\n";
-  for (const key in A) {
-    const r1 = arg(SETUP, A[key]);
-    const r2 = xARG(SETUP, A[key]);
-    const r3 = ARG3(SETUP, A[key]);
-    out += key + " → arg(" + r1.need.length + " fehlt), xARG(" + r2.need.length + " fehlt), 3te‑ARG(" + r3.need.length + " fehlt)\n";
-  }
-  out += "\n";
-
-  // Achse B
-  out += "Achse B (C / X / Z)\n";
-  for (const key in Baxis) {
-    const r1 = arg(SETUP, Baxis[key]);
-    const r2 = xARG(SETUP, Baxis[key]);
-    const r3 = ARG3(SETUP, Baxis[key]);
-    out += key + " → arg(" + r1.need.length + " fehlt), xARG(" + r2.need.length + " fehlt), 3te‑ARG(" + r3.need.length + " fehlt)\n";
-  }
-  out += "\n";
-
-  // Achse C
-  out += "Achse C (DE / TR / EN)\n";
-  for (const key in Caxis) {
-    const r1 = arg(SETUP, Caxis[key]);
-    const r2 = xARG(SETUP, Caxis[key]);
-    const r3 = ARG3(SETUP, Caxis[key]);
-    out += key + " → arg(" + r1.need.length + " fehlt), xARG(" + r2.need.length + " fehlt), 3te‑ARG(" + r3.need.length + " fehlt)\n";
-  }
-  out += "\n";
-
-  out += "PORT‑Dach‑Analyse:\n-------------------\n";
-  out += "SETUP deckt alle 3 ARG‑Ebenen teilweise ab.\n";
-  out += "PORT siedelt sich unter: arg (Basis‑Start)\n\n";
-
-  out += "Empfehlung:\n-----------\n";
-  out += "SETUP ist funktionsfähig — PORT kann SETUP als Start‑Master nutzen.\n";
-
-  document.getElementById("output").textContent = out;
+  const respos = await loadAllRespos();
+  const scan = respos.map(r => GHOST_SCAN_REAL(r));
+  renderScan(scan);
 }
 </script>
 </head>
 
-<body onload="runVerify()">
+<body onload="start()">
 
-<h1>SETUP‑VERIFY • arg / xARG / 3te‑ARG</h1>
+<h1>SETUP · RESPO · Zentrum</h1>
 
 <div class="block">
-  <h2>Analyse‑Output</h2>
-  <pre id="output"></pre>
+  <h2>Zentrum‑Status</h2>
+  <pre>
+CORE = SETUP
+KONSTELLATION = TMP
+FREQ = 12e
+6D = D2
+360° = Zentrum‑Sequenz
+ROLLE = Matrix & Stabilisierung
+STATUS = Aktiv
+READY = <span id="verifyReady">…</span>
+  </pre>
 </div>
+
+<div class="block">
+  <h2>VERIFY‑Status</h2>
+  <pre id="verifyStatus">Lade verify.html…</pre>
+</div>
+
+<div class="block">
+  <h2>ARG‑Engine</h2>
+  <pre>
+arg = Basis‑Ebene
+xARG = NC²/6D/12e‑Ebene
+3te‑ARG = Meta‑Ebene
+Alle drei Ebenen aktiv.
+  </pre>
+</div>
+
+<div class="block">
+  <h2>RESPO‑GHOST‑SCAN</h2>
+  <div id="scanOutput"></div>
+</div>
+
+<h2>Dateien</h2>
+<a href="./ID.html">Identität</a>
+<a href="./RESPO/boerse.json">boerse.json</a>
+<a href="./fin.e.js">fin.e.js</a>
+<a href="./verify.html">verify.html</a>
 
 </body>
 </html>
