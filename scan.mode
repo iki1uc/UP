@@ -1,0 +1,11 @@
+function UP_SCAN(r){
+  return {
+    NAME: r.NAME,
+    STATUS: r.STATUS || "unknown",
+    LEVEL: r.ERROR || r.MISS ? "rot" : "ok",
+    ASSIST: r.RESULT === "HELFEN",
+    OUT: r.OUT || [],
+    REAL: r.WAHRHEIT || "?",
+    EDIT: r.IST_IST || "?"
+  };
+}
