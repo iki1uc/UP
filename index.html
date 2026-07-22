@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>UP · Portal</title>
+<title>UP · Pipeline 3–6</title>
 
 <style>
 body { background:#000; color:#0f0; font-family:Consolas; padding:20px; }
@@ -10,29 +10,32 @@ h1, h2 { color:#6cf; }
 pre { background:#111; border:1px solid #333; padding:12px; }
 a { color:#6cf; display:block; margin:10px 0; }
 .respo-box { border:1px solid #333; padding:10px; margin:10px; background:#111; }
-.ok { color:#00ff88; }
-.assist { color:#ffcc00; }
+
 .rot { color:#ff4444; }
+.gelb { color:#ffcc00; }
+.gruen { color:#00ff88; }
+.route { color:#6cf; }
 </style>
 </head>
 
 <body>
 
-<h1>UP · RESPO‑SCAN</h1>
+<h1>UP · Pipeline 3–6</h1>
 
-<pre>
-CORE    = UP
-MODE    = SCAN-HUB
-LEVEL   = rot
-STATE   = rdy
-READY   = 100%
+<pre id="grml_out">
+CORE        = UP
+VERSION     = 2.1
+STATE       = rdy
+LEVEL       = rot
+READY       = 100%
 
-SCAN-MODE   = aktiv
-VERIFY-LINK = aktiv
-TMP-MODE    = aktiv
+PIPELINE    = IN / IX / GRML / VERIFY / UI
 </pre>
 
 <div id="output"></div>
+
+<script src="./scan.mode"></script>
+<script src="./grml.mode"></script>
 
 <script>
 // RESPO-Liste
@@ -50,10 +53,12 @@ async function loadRespo(name){
 
 // SCAN-Modul
 function UP_SCAN(r){
+  const level = r.ERROR || r.MISS ? "rot" : r.RESULT === "HELFEN" ? "gelb" : "gruen";
+
   return {
     NAME: r.NAME,
     STATUS: r.STATUS || "unknown",
-    LEVEL: r.ERROR || r.MISS ? "rot" : "ok",
+    LEVEL: level,
     ASSIST: r.RESULT === "HELFEN",
     OUT: r.OUT || [],
     REAL: r.WAHRHEIT || "?",
@@ -61,25 +66,21 @@ function UP_SCAN(r){
   };
 }
 
-// MAP-Modul
-const RESPO_MAP = {
-  AIR: "Input",
-  boerse: "Value",
-  markt3: "Trade",
-  HOME: "Local",
-  USE: "User",
-  ACSH: "Cash",
-  REAL: "Real",
-  BIL: "Image",
-  DU: "Person",
-  NG: "Next"
-};
-
 // Routing
 function UP_ROUTE(r){
   if(r.LEVEL === "rot") return "OUT";
-  if(r.ASSIST) return "IO";
-  return "SCAN-HUB";
+  if(r.LEVEL === "gelb") return "IN";
+  return "IX";
+}
+
+// Pipeline 3 — UP → IN
+function UP_TO_IN(scan){
+  console.log("UP → IN:", scan);
+}
+
+// Pipeline 4 — UP → IX
+function UP_TO_IX(scan){
+  console.log("UP → IX:", scan);
 }
 
 // Renderer
@@ -91,22 +92,54 @@ function renderScan(scan){
     const box = document.createElement("div");
     box.className = "respo-box";
 
-    let statusClass = r.LEVEL === "rot" ? "rot" : r.ASSIST ? "assist" : "ok";
-
     box.innerHTML = `
-      <h2 class="${statusClass}">${r.NAME}</h2>
-      <p><b>MAP:</b> ${RESPO_MAP[r.NAME]}</p>
+      <h2 class="${r.LEVEL}">${r.NAME}</h2>
       <p><b>STATUS:</b> ${r.STATUS}</p>
       <p><b>LEVEL:</b> ${r.LEVEL}</p>
       <p><b>ASSIST:</b> ${r.ASSIST}</p>
       <p><b>OUT:</b> ${JSON.stringify(r.OUT)}</p>
       <p><b>REAL:</b> ${r.REAL}</p>
       <p><b>EDIT:</b> ${r.EDIT}</p>
-      <p><b>ROUTE:</b> ${UP_ROUTE(r)}</p>
+      <p class="route"><b>ROUTE:</b> ${UP_ROUTE(r)}</p>
     `;
 
     out.appendChild(box);
+
+    // Pipeline routing
+    if(UP_ROUTE(r) === "IN") UP_TO_IN(r);
+    if(UP_ROUTE(r) === "IX") UP_TO_IX(r);
   });
+}
+
+// GRML Fullscan
+async function GRML_UP_SCAN(){
+  const files = [
+    "index.html",
+    "scan.mode",
+    "verify.html",
+    "time_3x11_scroll_zoom.html",
+    "L",
+    "t",
+    "T"
+  ];
+
+  const out = { ok:[], miss:[], warn:[] };
+
+  for(const f of files){
+    try {
+      const res = await fetch(`./${f}`);
+      if(!res.ok) out.miss.push(f);
+      else {
+        const txt = await res.text();
+        if(txt.trim().length === 0) out.warn.push(f);
+        else out.ok.push(f);
+      }
+    } catch(e){
+      out.miss.push(f);
+    }
+  }
+
+  return out;
 }
 
 // Start
@@ -115,8 +148,16 @@ function renderScan(scan){
   for(const n of RESPO_NAMES){
     respos.push(await loadRespo(n));
   }
+
   const scan = respos.map(r => UP_SCAN(r));
   renderScan(scan);
+
+  const grml = await GRML_UP_SCAN();
+  const out = document.getElementById("grml_out");
+
+  out.innerHTML += "\nGRML.OK      = " + JSON.stringify(grml.ok);
+  out.innerHTML += "\nGRML.WARN    = " + JSON.stringify(grml.warn);
+  out.innerHTML += "\nGRML.MISS    = " + JSON.stringify(grml.miss);
 })();
 </script>
 
