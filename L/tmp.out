@@ -1,0 +1,5 @@
+function UP_ROUTE(r){
+  if(r.LEVEL === "rot") return "OUT";
+  if(r.ASSIST) return "IO";
+  return "SCAN-HUB";
+}
