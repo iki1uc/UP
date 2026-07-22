@@ -1,1 +1,31 @@
+function UP_SCAN(r){
+  return {
+    NAME: r.NAME,
+    STATUS: r.STATUS || "unknown",
+    LEVEL: r.ERROR || r.MISS ? "rot" : "ok",
+    ASSIST: r.RESULT === "HELFEN",
+    OUT: r.OUT || [],
+    REAL: r.WAHRHEIT || "?",
+    EDIT: r.IST_IST || "?"
+  };
+}
+
+const RESPO_MAP = {
+  AIR: "Input",
+  boerse: "Value",
+  markt3: "Trade",
+  HOME: "Local",
+  USE: "User",
+  ACSH: "Cash",
+  REAL: "Real",
+  BIL: "Image",
+  DU: "Person",
+  NG: "Next"
+};
+
+function UP_ROUTE(r){
+  if(r.LEVEL === "rot") return "OUT";
+  if(r.ASSIST) return "IO";
+  return "SCAN-HUB";
+}
 
