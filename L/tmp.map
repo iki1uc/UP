@@ -1,0 +1,12 @@
+const RESPO_MAP = {
+  AIR: "Input",
+  boerse: "Value",
+  markt3: "Trade",
+  HOME: "Local",
+  USE: "User",
+  ACSH: "Cash",
+  REAL: "Real",
+  BIL: "Image",
+  DU: "Person",
+  NG: "Next"
+};
