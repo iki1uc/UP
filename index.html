@@ -2,79 +2,83 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>UP‑SCAN – Systemlage</title>
+<title>UP · Portal</title>
 
 <style>
-  body { font-family: Arial; background:#111; color:#eee; }
-  h1 { text-align:center; }
-  .respo-box {
-    border:1px solid #444;
-    padding:10px;
-    margin:10px;
-    background:#222;
-  }
-  .ok { color:#00ff88; }
-  .assist { color:#ffcc00; }
-  .rot { color:#ff4444; }
+body { background:#000; color:#0f0; font-family:Consolas; padding:20px; }
+h1, h2 { color:#6cf; }
+pre { background:#111; border:1px solid #333; padding:12px; }
+a { color:#6cf; display:block; margin:10px 0; }
+.respo-box { border:1px solid #333; padding:10px; margin:10px; background:#111; }
+.ok { color:#00ff88; }
+.assist { color:#ffcc00; }
+.rot { color:#ff4444; }
 </style>
 </head>
 
 <body>
 
-<h1>UP‑SCAN – Systemlage</h1>
+<h1>UP · RESPO-SCAN</h1>
+
+<pre>
+CORE    = UP
+MODE    = SCAN-HUB
+LEVEL   = rot
+STATE   = rdy
+READY   = 100%
+</pre>
 
 <div id="output"></div>
 
-<script src="./fin.e.js"></script>
-
 <script>
-// ------------------------------------------------------
 // RESPO-Liste
-// ------------------------------------------------------
-const RESPO_NAMES = [
-  "AIR","boerse","markt3","HOME","USE","ACSH","REAL","BIL","DU","NG"
-];
+const RESPO_NAMES = ["AIR","boerse","markt3","HOME","USE","ACSH","REAL","BIL","DU","NG"];
 
-// ------------------------------------------------------
 // Loader
-// ------------------------------------------------------
 async function loadRespo(name){
   try {
     const res = await fetch(`./RESPO/${name}.json`);
     return await res.json();
   } catch(e){
-    return { NAME:name, ROT:true };
+    return { NAME:name, MISS:true };
   }
 }
 
-async function loadAllRespos(){
-  const respos = [];
-  for(const n of RESPO_NAMES){
-    respos.push(await loadRespo(n));
-  }
-  return respos;
-}
-
-// ------------------------------------------------------
-// GSF‑ROT Neutralisierung
-// ------------------------------------------------------
-function GSF_ROT(r){
+// SCAN-Modul
+function UP_SCAN(r){
   return {
     NAME: r.NAME,
-    ID: r.ID || null,
     STATUS: r.STATUS || "unknown",
-    RESULT: r.RESULT || "none",
+    LEVEL: r.ERROR || r.MISS ? "rot" : "ok",
+    ASSIST: r.RESULT === "HELFEN",
     OUT: r.OUT || [],
     REAL: r.WAHRHEIT || "?",
-    EDIT: r.IST_IST || "?",
-    LEVEL: r.ROT === true ? "ROT" : "OK",
-    ASSIST: r.RESULT === "HELFEN"
+    EDIT: r.IST_IST || "?"
   };
 }
 
-// ------------------------------------------------------
+// MAP-Modul
+const RESPO_MAP = {
+  AIR: "Input",
+  boerse: "Value",
+  markt3: "Trade",
+  HOME: "Local",
+  USE: "User",
+  ACSH: "Cash",
+  REAL: "Real",
+  BIL: "Image",
+  DU: "Person",
+  NG: "Next"
+};
+
+// Routing
+function UP_ROUTE(r){
+  if(r.LEVEL === "rot") return "OUT";
+  if(r.ASSIST) return "IO";
+  return "SCAN-HUB";
+}
+
 // Renderer
-// ------------------------------------------------------
 function renderScan(scan){
   const out = document.getElementById("output");
   out.innerHTML = "";
@@ -83,33 +87,33 @@ function renderScan(scan){
     const box = document.createElement("div");
     box.className = "respo-box";
 
-    let statusClass = "ok";
-    if(r.ASSIST) statusClass = "assist";
-    if(r.LEVEL === "ROT") statusClass = "rot";
+    let statusClass = r.LEVEL === "rot" ? "rot" : r.ASSIST ? "assist" : "ok";
 
     box.innerHTML = `
       <h2 class="${statusClass}">${r.NAME}</h2>
-      <p><b>ID:</b> ${r.ID}</p>
-      <p><b>LAGE:</b> ${r.RAUM ? JSON.stringify(r.RAUM) : "(keine LAGE)"}</p>
+      <p><b>MAP:</b> ${RESPO_MAP[r.NAME]}</p>
       <p><b>STATUS:</b> ${r.STATUS}</p>
-      <p><b>RESULT:</b> ${r.RESULT}</p>
+      <p><b>LEVEL:</b> ${r.LEVEL}</p>
+      <p><b>ASSIST:</b> ${r.ASSIST}</p>
       <p><b>OUT:</b> ${JSON.stringify(r.OUT)}</p>
       <p><b>REAL:</b> ${r.REAL}</p>
       <p><b>EDIT:</b> ${r.EDIT}</p>
-      <p><b>LEVEL:</b> ${r.LEVEL}</p>
+      <p><b>ROUTE:</b> ${UP_ROUTE(r)}</p>
     `;
 
     out.appendChild(box);
   });
 }
 
-// ------------------------------------------------------
 // Start
-// ------------------------------------------------------
-loadAllRespos().then(respos => {
-  const scan = respos.map(r => GSF_ROT(r));
+(async () => {
+  const respos = [];
+  for(const n of RESPO_NAMES){
+    respos.push(await loadRespo(n));
+  }
+  const scan = respos.map(r => UP_SCAN(r));
   renderScan(scan);
-});
+})();
 </script>
 
 </body>
