@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>GHOST-SCAN – Systemlage</title>
+<title>UP‑SCAN – Systemlage</title>
 
 <style>
   body { font-family: Arial; background:#111; color:#eee; }
@@ -14,23 +14,22 @@
     background:#222;
   }
   .ok { color:#00ff88; }
-  .help { color:#ffcc00; }
-  .error { color:#ff4444; }
+  .assist { color:#ffcc00; }
+  .rot { color:#ff4444; }
 </style>
 </head>
 
 <body>
 
-<h1>GHOST‑SCAN – Systemlage</h1>
+<h1>UP‑SCAN – Systemlage</h1>
 
 <div id="output"></div>
 
-<!-- KORREKT -->
 <script src="./fin.e.js"></script>
 
 <script>
 // ------------------------------------------------------
-// RESPO-Liste (ALLE Cluster)
+// RESPO-Liste
 // ------------------------------------------------------
 const RESPO_NAMES = [
   "AIR","boerse","markt3","HOME","USE","ACSH","REAL","BIL","DU","NG"
@@ -41,10 +40,10 @@ const RESPO_NAMES = [
 // ------------------------------------------------------
 async function loadRespo(name){
   try {
-    const res = await fetch(`./RESPO/${name}.json`); // KORREKT
+    const res = await fetch(`./RESPO/${name}.json`);
     return await res.json();
   } catch(e){
-    return { NAME:name, MISS:true };
+    return { NAME:name, ROT:true };
   }
 }
 
@@ -54,6 +53,23 @@ async function loadAllRespos(){
     respos.push(await loadRespo(n));
   }
   return respos;
+}
+
+// ------------------------------------------------------
+// GSF‑ROT Neutralisierung
+// ------------------------------------------------------
+function GSF_ROT(r){
+  return {
+    NAME: r.NAME,
+    ID: r.ID || null,
+    STATUS: r.STATUS || "unknown",
+    RESULT: r.RESULT || "none",
+    OUT: r.OUT || [],
+    REAL: r.WAHRHEIT || "?",
+    EDIT: r.IST_IST || "?",
+    LEVEL: r.ROT === true ? "ROT" : "OK",
+    ASSIST: r.RESULT === "HELFEN"
+  };
 }
 
 // ------------------------------------------------------
@@ -68,9 +84,8 @@ function renderScan(scan){
     box.className = "respo-box";
 
     let statusClass = "ok";
-    if(r.RESULT === "HELFEN") statusClass = "help";
-    if(r.ERROR === true) statusClass = "error";
-    if(r.MISS === true) statusClass = "error";
+    if(r.ASSIST) statusClass = "assist";
+    if(r.LEVEL === "ROT") statusClass = "rot";
 
     box.innerHTML = `
       <h2 class="${statusClass}">${r.NAME}</h2>
@@ -79,8 +94,9 @@ function renderScan(scan){
       <p><b>STATUS:</b> ${r.STATUS}</p>
       <p><b>RESULT:</b> ${r.RESULT}</p>
       <p><b>OUT:</b> ${JSON.stringify(r.OUT)}</p>
-      <p><b>REAL:</b> ${r.WAHRHEIT || "?"}</p>
-      <p><b>EDIT:</b> ${r.IST_IST || "?"}</p>
+      <p><b>REAL:</b> ${r.REAL}</p>
+      <p><b>EDIT:</b> ${r.EDIT}</p>
+      <p><b>LEVEL:</b> ${r.LEVEL}</p>
     `;
 
     out.appendChild(box);
@@ -91,7 +107,7 @@ function renderScan(scan){
 // Start
 // ------------------------------------------------------
 loadAllRespos().then(respos => {
-  const scan = respos.map(r => GHOST_SCAN_REAL(r));
+  const scan = respos.map(r => GSF_ROT(r));
   renderScan(scan);
 });
 </script>
