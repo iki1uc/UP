@@ -19,7 +19,7 @@ a { color:#6cf; display:block; margin:10px 0; }
 
 <pre id="up_out">
 CORE        = UP
-VERSION     = 2.0
+VERSION     = 3.0
 STATE       = rdy
 LEVEL       = gruen
 READY       = 100%
@@ -77,6 +77,27 @@ async function UP_SCAN(){
     return out;
 }
 
+// --- REAL ROUTING: UP → IN / IX / XI / X.room / OUT ---
+function UP_TO_IN(scan){
+    window.postMessage({FROM:"UP", TO:"IN", DATA:scan}, "*");
+}
+
+function UP_TO_IX(scan){
+    window.postMessage({FROM:"UP", TO:"IX", DATA:scan}, "*");
+}
+
+function UP_TO_XI(scan){
+    window.postMessage({FROM:"UP", TO:"XI", DATA:scan}, "*");
+}
+
+function UP_TO_XROOM(scan){
+    window.postMessage({FROM:"UP", TO:"XROOM", DATA:scan}, "*");
+}
+
+function UP_TO_OUT(scan){
+    window.postMessage({FROM:"UP", TO:"OUT", DATA:scan}, "*");
+}
+
 // --- UP empfängt ENTER von CR ---
 window.addEventListener("message", (event) => {
     if(event.data.FROM === "CR" && event.data.TYPE === "ENTER"){
@@ -94,8 +115,14 @@ window.addEventListener("message", (event) => {
     out.innerHTML += "\nGELB  = " + JSON.stringify(scan.gelb);
     out.innerHTML += "\nGRUEN = " + JSON.stringify(scan.gruen);
 
-    // Ordner anzeigen
     out.innerHTML += "\nFOLDER = " + JSON.stringify(UP_FOLDERS);
+
+    // REAL ROUTING
+    UP_TO_IN(scan);
+    UP_TO_IX(scan);
+    UP_TO_XI(scan);
+    UP_TO_XROOM(scan);
+    UP_TO_OUT(scan);
 })();
 </script>
 
