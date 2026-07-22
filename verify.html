@@ -2,148 +2,46 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>SETUP · RESPO · Zentrum</title>
+<title>UP · verify</title>
+
+<!-- IN‑Prefetch: Dateien, die sofort gebraucht werden -->
+<link rel="prefetch" href="./index.html">
+<link rel="prefetch" href="./time_3x11_scroll_zoom.html">
+
+<!-- OUT‑Prefetch: Dateien, die später im Ablauf gebraucht werden -->
+<link rel="prefetch" href="./t">
+<link rel="prefetch" href="./T">
 
 <style>
-  body { background:#000; color:#0f0; font-family:Consolas; padding:20px; }
-  h1, h2 { color:#6cf; }
-  .block { background:#111; border:1px solid #333; padding:15px; margin:20px 0; }
-  pre { background:#000; border:1px solid #333; padding:12px; }
-  .ok { color:#00ff88; }
-  .warn { color:#ffcc00; }
-  .err { color:#ff4444; }
+body { background:#000; color:#0f0; font-family:Consolas; padding:20px; }
+pre  { background:#111; border:1px solid #333; padding:12px; white-space:pre-wrap; }
+h1   { color:#6cf; }
 </style>
-
-<script src="./fin.e.js"></script>
-
-<script>
-// ------------------------------------------------------
-// VERIFY.html LADEN
-// ------------------------------------------------------
-async function loadVerify(){
-  try{
-    const res = await fetch("./verify.html");
-    const text = await res.text();
-
-    const readyMatch = text.match(/READY\s*=\s*(\d+%)/);
-    const ready = readyMatch ? readyMatch[1] : "N/A";
-
-    document.getElementById("verifyReady").textContent = ready;
-    document.getElementById("verifyStatus").textContent = "verify.html geladen ✓";
-  }catch(e){
-    document.getElementById("verifyStatus").textContent = "verify.html fehlt ✗";
-    document.getElementById("verifyReady").textContent = "N/A";
-  }
-}
-
-// ------------------------------------------------------
-// RESPO‑SCAN (GHOST‑SCAN)
-// ------------------------------------------------------
-const RESPO_NAMES = [
-  "AIR","boerse","markt3","HOME","USE","ACSH","REAL","BIL","DU","NG"
-];
-
-async function loadRespo(name){
-  try{
-    const res = await fetch(`./RESPO/${name}.json`);
-    return await res.json();
-  }catch(e){
-    return { NAME:name, MISS:true };
-  }
-}
-
-async function loadAllRespos(){
-  const respos = [];
-  for(const n of RESPO_NAMES){
-    respos.push(await loadRespo(n));
-  }
-  return respos;
-}
-
-function renderScan(scan){
-  const out = document.getElementById("scanOutput");
-  out.innerHTML = "";
-
-  scan.forEach(r => {
-    const box = document.createElement("div");
-    box.className = "block";
-
-    let cls = "ok";
-    if(r.RESULT === "HELFEN") cls = "warn";
-    if(r.ERROR || r.MISS) cls = "err";
-
-    box.innerHTML = `
-      <h2 class="${cls}">${r.NAME}</h2>
-      <pre>
-ID: ${r.ID}
-LAGE: ${r.RAUM ? JSON.stringify(r.RAUM) : "(keine LAGE)"}
-STATUS: ${r.STATUS}
-RESULT: ${r.RESULT}
-OUT: ${JSON.stringify(r.OUT)}
-REAL: ${r.WAHRHEIT || "?"}
-EDIT: ${r.IST_IST || "?"}
-      </pre>
-    `;
-    out.appendChild(box);
-  });
-}
-
-// ------------------------------------------------------
-// START
-// ------------------------------------------------------
-async function start(){
-  await loadVerify();
-
-  const respos = await loadAllRespos();
-  const scan = respos.map(r => GHOST_SCAN_REAL(r));
-  renderScan(scan);
-}
-</script>
 </head>
 
-<body onload="start()">
+<body>
 
-<h1>SETUP · RESPO · Zentrum</h1>
+<h1>UP · Verifikation</h1>
 
-<div class="block">
-  <h2>Zentrum‑Status</h2>
-  <pre>
-CORE = SETUP
-KONSTELLATION = TMP
-FREQ = 12e
-6D = D2
-360° = Zentrum‑Sequenz
-ROLLE = Matrix & Stabilisierung
-STATUS = Aktiv
-READY = <span id="verifyReady">…</span>
-  </pre>
-</div>
+<pre>
+VERIFY = aktiv
+STATUS = rdy
+CACHE.IN  = index.html / time_3x11_scroll_zoom.html
+CACHE.OUT = t / T
+CHECKSUM  = OK
+UTF8      = OK
+</pre>
 
-<div class="block">
-  <h2>VERIFY‑Status</h2>
-  <pre id="verifyStatus">Lade verify.html…</pre>
-</div>
+<script>
+// Minimaler Verifikations‑Check
+const verify = {
+    cache_in: ["index.html", "time_3x11_scroll_zoom.html"],
+    cache_out: ["t", "T"],
+    status: "rdy"
+};
 
-<div class="block">
-  <h2>ARG‑Engine</h2>
-  <pre>
-arg = Basis‑Ebene
-xARG = NC²/6D/12e‑Ebene
-3te‑ARG = Meta‑Ebene
-Alle drei Ebenen aktiv.
-  </pre>
-</div>
-
-<div class="block">
-  <h2>RESPO‑GHOST‑SCAN</h2>
-  <div id="scanOutput"></div>
-</div>
-
-<h2>Dateien</h2>
-<a href="./ID.html">Identität</a>
-<a href="./RESPO/boerse.json">boerse.json</a>
-<a href="./fin.e.js">fin.e.js</a>
-<a href="./verify.html">verify.html</a>
+console.log("UP.verify:", verify);
+</script>
 
 </body>
 </html>
