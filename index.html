@@ -1,92 +1,84 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>UP · Basismodul</title>
+<title>UP · Vorderstation</title>
 
 <style>
-body { background:#000; color:#0f0; font-family:Consolas; padding:20px; }
-h1, h2 { color:#6cf; }
-pre { background:#111; border:1px solid #333; padding:12px; }
-a { color:#6cf; display:block; margin:6px 0; }
-.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+body { background:#000; color:#0f0; font-family:monospace; padding:40px; }
+h1 { color:#6cf; text-align:center; }
+
+#portal {
+    width: 360px;
+    height: 360px;
+    margin: auto;
+    border: 3px solid #6cf;
+    border-radius: 50%;
+    position: relative;
+    animation: spin 10s linear infinite;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background:#0f0;
+    border-radius:50%;
+    position:absolute;
+}
+
+pre {
+    background:#111;
+    padding:20px;
+    border-left:3px solid #6cf;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
 </style>
+
+<script src="UP.core.js"></script>
+<script src="UP.scan.js"></script>
+<script src="UP.mode.js"></script>
+<script src="UP.pipeline.js"></script>
+
 </head>
 
 <body>
 
-<h1>UP · Basismodul</h1>
+<h1>UP · Vorderstation</h1>
 
-<pre id="station_out">
-CORE        = UP
-VERSION     = 3.1
-STATE       = rdy
-LEVEL       = gruen
-READY       = 100%
-</pre>
-
-<h2>Stationen</h2>
-<div class="grid">
-  <a href="../IN/index.html">IN</a>
-  <a href="../IX/index.html">IX</a>
-  <a href="../XI/index.html">XI</a>
-  <a href="./scan.mode">SCAN</a>
-  <a href="./verify.html">VERIFY</a>
-  <a href="./time_3x11_scroll_zoom.html">TIME</a>
-</div>
+<div id="portal"></div>
+<pre id="status">Lade UP…</pre>
 
 <script>
-// --- Listener für eingehende Nachrichten ---
-window.addEventListener("message", (event) => {
-    const d = event.data;
-    if(!d || !d.FROM || !d.TO) return;
+const portal = document.getElementById("portal");
+const count = 36;
+const radius = 160;
 
-    document.body.style.border = "2px solid #6cf";
-    document.getElementById("station_out").innerHTML += `\nFROM: ${d.FROM} → TO: ${d.TO}`;
-});
+for(let i=0; i<count; i++){
+    const dot = document.createElement("div");
+    dot.className = "dot";
 
-// --- UP-SCAN ---
-const UP_FILES = ["index.html","scan.mode","verify.html","time_3x11_scroll_zoom.html"];
+    const angle = (i / count) * Math.PI * 2;
+    const x = Math.cos(angle) * radius + 180 - 5;
+    const y = Math.sin(angle) * radius + 180 - 5;
 
-async function UP_SCAN(){
-    const out = { rot:[], gelb:[], gruen:[] };
+    dot.style.left = x + "px";
+    dot.style.top = y + "px";
 
-    for(const f of UP_FILES){
-        try {
-            const res = await fetch(`./${f}`);
-            if(!res.ok){ out.rot.push(f); continue; }
-
-            const txt = await res.text();
-            if(txt.trim().length === 0) out.gelb.push(f);
-            else out.gruen.push(f);
-
-        } catch(e){ out.rot.push(f); }
-    }
-    return out;
+    portal.appendChild(dot);
 }
 
-// --- UP → ALLE ROUTING ---
-function UP_ROUTE(scan){
-    const payload = { FROM:"UP", DATA:scan, TIME:Date.now() };
+UP.enter(77);
+UP.scan = UP_SCAN.detect(UP.input);
+UP.mode = UP_MODE.set("CORE");
+const result = UP.compute();
+const forward = UP_PIPE.fuse(result);
 
-    window.postMessage({...payload, TO:"IN"}, "*");
-    window.postMessage({...payload, TO:"IX"}, "*");
-    window.postMessage({...payload, TO:"XI"}, "*");
-    window.postMessage({...payload, TO:"XROOM"}, "*");
-    window.postMessage({...payload, TO:"OUT"}, "*");
-}
-
-// --- START ---
-(async () => {
-    const scan = await UP_SCAN();
-    const out = document.getElementById("station_out");
-
-    out.innerHTML += "\nROT   = " + JSON.stringify(scan.rot);
-    out.innerHTML += "\nGELB  = " + JSON.stringify(scan.gelb);
-    out.innerHTML += "\nGRUEN = " + JSON.stringify(scan.gruen);
-
-    UP_ROUTE(scan);
-})();
+document.getElementById("status").innerText =
+    JSON.stringify({ UP: result, forward }, null, 2);
 </script>
 
 </body>
