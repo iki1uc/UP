@@ -1,33 +1,23 @@
-# UP – Basismodul
+# UP · Vorderstation · Basismodul
 
-UP ist ein minimales Modul zur Prüfung von Dateizugriff, Cache-Verhalten und
-HTML-Struktur. Es enthält mehrere Testdateien, die für Validierung und
-Erweiterungen genutzt werden können.
+UP ist die vordere Station des iki1uc-Systems.
+Sie führt Scan, Mode und Upward-Berechnung aus und leitet an IN weiter.
 
+──────────────────────────────────────────────
+## Achsen
+
+- input – Eingangswert
+- scan – Erkennungsachse
+- mode – Betriebsmodus
+- upward – Aufwärtsachse
+
+──────────────────────────────────────────────
 ## Dateien
 
-- index.html
-- verify.html
-- time_3x11_scroll_zoom.html
-- t
-- T
-- README.md
-
-## Zweck
-
-UP dient als universeller Testpunkt. Die Dateien können verwendet werden, um:
-
-- Cache-Verhalten zu prüfen
-- Browser-Rendering zu testen
-- Dateistruktur zu validieren
-- Module und Sequenzen zu erweitern
-
-## Status
-
-READY
-Das Modul ist vollständig geladen und kann erweitert werden.
-
-## Hinweise
-
-UP enthält keine externen Abhängigkeiten und kann in beliebigen Ordnern,
-Repos oder Systemstrukturen eingesetzt werden.
+- UP.core.js – Hauptengine
+- UP.scan.js – Scan-Achse
+- UP.mode.js – Mode-Achse
+- UP.pipeline.js – Übergabeachse
+- UP.result.json – Ergebnis-Pool
+- id.html – ID-Stempel
+- index.html – Vorder-Geometrie
